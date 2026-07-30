@@ -11,6 +11,110 @@ an entry, no entry without a bump.
 
 ---
 
+## p30 · A retired model says so, and the way to change it is written down
+
+**Problem:** the user asked what happens *"if that model is no longer
+available on Claude side - then how to change it"*. The app already
+degraded rather than crashed - any non-OK response falls back to the
+offline rules - but a retired model surfaced as a raw `API error 404:
+{...}`, which does not tell a non-engineer that a model name has gone
+stale. And the fix, editing one constant, was documented nowhere. **What
+changed:** three things. (1) A named 404 branch: *the model "X" was not
+recognised (404) - it may have been renamed or retired. Update MODEL near
+the top of index.html. Running the offline rules meanwhile.* (2) A
+`MODEL_MISSING` chip state, for the same reason p28 existed: after a 404
+the header still read `runs use claude-sonnet-4-5`, a claim the app now
+knew to be false. It reads `model X unavailable (404) - running offline
+rules` until a call succeeds, then returns to the reported live model.
+(3) A **Changing the model** section in the product README - the constant,
+that nothing else names a model, and what a retirement looks like from the
+user's side. **Also recovered:** `PRODUCT_README.md` now lives in this
+repo. It had been written straight into the published repo, and the
+working copy was in an ephemeral directory the container reclaimed - so
+the only copy was on GitHub, and it could not be edited here. Pulled back
+from `raw.githubusercontent.com` and version-controlled; it ships to the
+product repo root as `README.md`. **Verified:** headless with a stubbed
+404 - the plain-English message renders, the run still produces a full
+card from the offline rules, and the chip flips to unavailable; then the
+same case against a 200 returns the chip to `live · claude-sonnet-4-5-
+20250929`. Zero console errors.
+
+## p29 · The Memory tab admits it is holding a credential
+
+**Problem:** the Memory tab claims to show *"everything the prototype
+holds - and what it refuses to hold"*, and it listed decisions, edits,
+verdicts and the run log. It did not list the API key, which is the one
+genuinely sensitive thing in browser storage. Found while answering the
+user's question *"is this api key also in the log?"* - it is not (traced:
+`getKey()` has four call sites, three coerce to a boolean and one sets the
+`x-api-key` request header; `logRun` stores no key field; the other three
+localStorage entries never touch it) - but a disclosure panel that omits
+the credential is not a disclosure panel. Second defect found in the same
+pass: **`forgetAll()` did not clear the key**, so a button labelled
+"Forget all" left a credential behind. **What changed:** a *Your API key*
+row under REMEMBERED THIS SESSION, stating whether one is saved, that it
+lives in this browser only, that it travels to exactly one place - the
+request header to Anthropic - and that it is never in the run log, this
+file, or the repository. The overclaim is resolved by disclosure rather
+than by deletion: "Forget all" deliberately keeps the key so a demo is not
+interrupted, says so in its caption, and a separate **Remove key** button
+clears it and drops the app back to offline rules. **Verified:** headless
+- the field flips between saved and not-saved wording; the key's *value*
+appears nowhere in the rendered text or the DOM (searched the full HTML
+for the test key string, zero hits); the key survives Forget all; Remove
+key clears storage, the Memory row flips to "not saved", and the status
+chip returns to `offline rules mode`. Zero console errors. (A first test
+run reported a false failure - the selector `text=Remove key` matched the
+bold reference inside the disclosure sentence before the button; re-run
+with `button:has-text(...)` passed.)
+
+## p28 · The status chip stops claiming a readiness it never checked
+
+**Problem:** the top-bar chip read `live model ready · claude-sonnet-4-5`
+the instant any string was saved as a key. It tested nothing. An expired
+or malformed key still produced "ready", and the user only discovered
+otherwise when a run came back 401. It also named the model the app
+*intends* to call, presented as fact. Raised by the user: *"change it if
+it will display real model behind the key."* There is no model behind a
+key — a key is an account credential — but the API does report which model
+answered, and that is knowable after a call. **What changed:** the chip
+now has four honest states instead of two. No key: `offline rules mode`.
+Key saved, nothing run yet: `key saved · runs use claude-sonnet-4-5` — a
+statement of intent, not of readiness. After a successful call: `live ·`
+plus `j.model` from the response, the full dated id, so the label is the
+model that actually answered rather than the alias requested. After a
+401: `key rejected (401) — running offline rules`. Saving a new key
+clears both flags, because an unproven key is unproven. The DECISION
+row's mode string uses the same reported id. **Verified:** headless, all
+four states driven with a stubbed API — no key, saved-not-run, a 200
+returning `claude-sonnet-4-5-20250929` (chip showed the dated id, not the
+alias), and a 401 (chip flipped to rejected, run fell back to offline
+rules). Zero console errors.
+
+## p27 · The first frame stops being an empty API key box
+
+**Problem:** the Console's right-hand column opened with the Settings
+panel — an API key box a visitor cannot use and does not want on arrival —
+above a Run log that reads `0` until something happens. So the emptiest
+region on the page was the one a cold visitor's eye landed on first, and
+it is the opening frame of the demo video. Reported by the user on the
+live site: *"why is the settings module on the right side alone taking the
+space for that one simple use case?"* **What changed:** Settings moved
+into the Cases column as a docked footer (`.settings-dock`), with the case
+list scrolling above it (`.cases-panel` / `.cases-scroll`) so the key box
+stays put through all sixteen cases; the right column is now the Run log
+alone, opening on *"no runs yet — every human decision lands here"* — a
+sentence that explains the human gate to someone four seconds into the
+page. The empty-state pointer changed from "Settings on the right" to
+"Settings, bottom left". Layout and copy only: no JavaScript, no
+arithmetic, no safety code touched — `saveKey()` finds the field by id
+wherever it sits. **Verified:** headless at 1600×950 — three panels
+intact, key box inside the Cases column at x=17 and the Run log at
+x=1281, case selection still renders the five stages (D-1002 → Maya,
+plan C-02); and at 420×900 the dock stays visible with the panel height
+cap lifted, so the phone view still scrolls as one column. Zero console
+errors.
+
 ## p26 · The safety screen meets language it has never seen
 
 **Faculty request, pre-Deploy:** *"the safety screen is the component whose

@@ -39,6 +39,23 @@ into the Settings panel. It is stored only in your browser's local storage
 and is sent only to Anthropic's API. It never reaches this repository, any
 server of ours, or anyone else — there is no backend here to send it to.
 
+## Changing the model
+
+The model is one line near the top of `index.html`:
+
+```js
+const MODEL = "claude-sonnet-4-5";
+```
+
+Change that string and reload. Nothing else in the app names a model, so
+that is the whole edit.
+
+If Anthropic retires the model, the app does not break: the call fails,
+the run falls back to the offline rules, and the error names the model and
+points at this line. The header chip tells you which model is in play —
+before a run it says which one *will* be requested; after a successful run
+it shows the exact version the API reported back.
+
 ## Two things worth knowing about the design
 
 **The safety screen runs first, on the raw text, before any model call.**
