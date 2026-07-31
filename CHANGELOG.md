@@ -11,6 +11,75 @@ an entry, no entry without a bump.
 
 ---
 
+## p32 · The question narrows to the meals still open
+
+**Problem:** a flaw in p31, found by the user one build later, from the
+observation that a message at 11:00 tells you nothing about whether it
+concerns breakfast or lunch. That is true — and the clock is never used to
+infer a meal anywhere in the app; its only computational role is
+`deliveryTime()` for coach quiet hours. But the clock *combined with what
+is already accounted for* does narrow the choice, and p31's presets
+ignored that: `PLANS.filter(...).map(p => p.meal_slot)` listed every meal
+on the plan. So on D-1004 — 13:00, breakfast logged — the app would have
+asked which meal to sort out and offered **breakfast** among the four. A
+bad question, asked confidently. **The product decision, taken explicitly:
+always ask, never auto-select** — even when exactly one slot remains. The
+moment the app picks the meal it is deciding what the client meant, which
+is the same silent-wrong-answer class this whole sequence has been closing;
+"ask, never guess" (A7) does not get an exception for convenience. Asking
+and offering are not opposites: the fix is an *informed* question.
+**What changed:** presets are now the plan slots minus everything closed —
+eaten as planned, or displaced — taken from the model's situation when it
+has one and the intake fields otherwise, tolerant of the blank-ish values
+in the seed data (D-1004 carries `displaced_meals: " "`). The question
+states its basis so the human can see why those options and not others,
+and the single-slot case gets its own wording that still requires a tap.
+**Verified:** headless, all three wordings. D-1004 (13:00, breakfast
+eaten) → *"It's 13:00 and breakfast is already accounted for. Which meal
+should I sort out?"* with **lunch · snack · dinner**. D-1010 (19:20,
+breakfast, lunch and snack eaten) → *"…so dinner is the only meal still
+open. Tap it to confirm — I won't assume it for you"* with **dinner**
+alone. D-1001 with everything blanked (Alex, who has targets) → *"It's
+15:00 and nothing is logged yet today"* with all four. Run All unchanged:
+7 OK · 2 REFUSED-ESCALATE · 1 out-of-scope · 6 clarify · 0 errors. Zero
+console errors. (A fourth case, D-1009, was in the first test run and
+proved nothing: Maya's plan states no targets, so it clarifies on that at
+an earlier guard and never reaches this branch. Replaced with the D-1001
+mutation rather than counted as a pass.)
+
+## p31 · No meal named means ask, not compute
+
+**Problem:** found by the user while tracing what the agent must get right
+before anything downstream can be correct - *"there are cases where it is
+not clear at all which meal it is."* The CLARIFY guard tested the trigger
+and the three fact slots; it never tested `meal_to_solve`. So a message
+with a recognisable trigger but no identifiable meal was answered rather
+than questioned, and `computeCard` then failed twice over: with an empty
+`solve`, no plan meal matches the gap, so **every uneaten meal is reserved
+instead** and the remaining budget collapses toward zero or negative; and
+the meal-type filter is written `if (solve && ...)`, so it is **skipped
+entirely** and breakfast foods become valid dinners. Both silent - a
+confident, internally consistent card off a false premise. No seeded case
+triggers it: all sixteen carry a meal, so the defect was latent, waiting
+for the first real message without an obvious one. **What changed:** a
+`noMeal` check at the point where the offline and live paths converge,
+immediately before the arithmetic - deliberately not inside
+`offlineAgent`, which would have left a live model returning `STATUS: OK`
+with a blank meal walking straight past. Because the existing CLARIFY card
+asks about the shape of the day and offers the five scenario presets -
+neither of which can surface a missing meal - the branch carries its own
+question (*"Which meal should I sort out for you? The whole calculation
+hangs on it, so I won't guess"*) and its own presets: **the client's
+actual plan meal slots**, read from PLANS. **Verified:** headless. Run All
+on p31 returns exactly the p30 sweep - 7 OK · 2 REFUSED-ESCALATE · 1
+out-of-scope · 6 clarify · 0 errors - so no seeded behaviour moved. Then
+D-1001 with its meal blanked at runtime: status CLARIFY, the reason names
+the dependency, the question is the meal question, the presets read
+breakfast / lunch / snack / dinner, and no card is computed. (One false
+alarm during verification: the card-presence check matched the word
+"budget" inside the new reason copy. Stage 4 shows the Question; OPTIONS
+is absent.)
+
 ## p30 · A retired model says so, and the way to change it is written down
 
 **Problem:** the user asked what happens *"if that model is no longer
