@@ -11,6 +11,68 @@ an entry, no entry without a bump.
 
 ---
 
+## p38 · A clarification that is a sentence, not a tap
+
+**Problem:** the user's example dismantled the button-based clarify —
+*"imagine the answer was: i had my lunch now instead of breakfast and took
+a small chocolate cake at a colleague's birthday."* That is not an answer
+to the question asked. It is a new message: lunch eaten, breakfast
+displaced, an off-plan item, and a meal implied — a restructuring of the
+day that no closed set of buttons can express, arriving as text that must
+be screened before any of it is believed. Today's answers enter as
+already-parsed values, which skips both the safety screen and the
+extraction; that is safe only because a button cannot say anything
+dangerous or surprising. **What changed:** a seventeenth case, **D-1017**,
+whose first message — *"today has been a write-off honestly, everything
+shifted around"* — carries no meal and no facts, and which ships with the
+client's own reply on file. The clarify card now offers *Client replies in
+their own words →* beside the presets. Taking it appends the reply to
+`d.message`, so the **safety screen and the model both read it as client
+language**, and re-runs. The `followup_*` fields are what extraction
+resolves that sentence to, used by the offline rules exactly as the seeded
+intake fields are for the other sixteen — with a key, the model does the
+reading for real. `data/disruptions.csv` and `data/state_history.csv` were
+regenerated from the arrays in `index.html` rather than hand-edited, so
+the shipped evidence cannot drift from the code. **Verified:** headless.
+Round one asks which meal and offers all four slots, because nothing is
+logged yet at 13:20. The reply resolves it in a single round: trigger
+`off_plan_extra`, and the arithmetic follows the sentence exactly —
+lunch 650/50 plus cake 300/3 gives **consumed 950 / 53 g**, snack alone
+**reserved 350 / 30 g** because breakfast is displaced and dinner is the
+gap, leaving **remaining 1100 kcal / 77 g**. The run log records *"client
+replied"* with the sentence. Sweep moves 6 clarify → 7 and 16 cases → 17,
+with the other sixteen outcomes unchanged — confirmed by running the
+sweep against p37 and p38 side by side. Suite 45/45; 37/38 against p37,
+failing on the section that does not exist there. **Honest about what it
+is:** the reply is on file, not typed. It proves the loop — a sentence,
+screened, parsed, resolving in one round — without pretending a free-text
+intake exists.
+
+## p37 · The copy edit p35 claimed to have made
+
+**Problem:** found while tracing the question chain for the user, not by
+any check. p35's entry claims *"the question above them says so plainly
+instead of promising a pick."* It did not. The screen still read *"If it's
+easier, **pick a preset**"* above two presets that cannot be picked — the
+precise promise p35 existed to remove — and it shipped to the live site in
+that state, with a changelog entry asserting otherwise. **Cause:** the
+replacement searched for a line beginning `: "I want to get this
+right…`, but p32 had restructured that ternary and the string now sits on
+the `?` branch. It matched nothing and failed silently. Five of the six
+p35 edits carried an `assert`; this one did not, and it is the one that
+broke. **What changed:** the copy, with an assertion this time — *"Pick
+what happened. The first two need a calorie figure and there is nowhere to
+type one yet, so they are not selectable."* And a regression check on the
+sentence itself, since the suite had 36 checks on behaviour and none on
+the words, which is why a silent copy failure survived a green run and a
+publish. p35's entry above now carries the correction inline: a build
+record that overstates what it did is the same defect as an eval Actual
+that overstates what it observed, and this project has already ruled on
+that once. **Verified:** the new check passes on p37 and **fails against
+the file currently live** — pulled back from `raw.githubusercontent.com`
+and run against it: 36/37, failing exactly on the promise. Suite 37/37 on
+the fix.
+
 ## p36 · The hover stops lying, and the answer stays on screen
 
 **Problem:** two, both reported by the user. First, *"when I hover over
@@ -69,6 +131,11 @@ over its own regex guess, and `userMessage()` passes it to the model so
 both paths see the client's answer. The two that need a figure render as
 `— needs a number`, unselectable, with the reason in their tooltip. The
 question above them says so plainly instead of promising a pick.
+**Correction, recorded in p37:** that last sentence was false when it was
+written. The copy edit matched nothing and failed silently, so p35 shipped
+to the live site with *"If it's easier, pick a preset"* still on screen,
+above two presets that cannot be picked. Everything else in this entry is
+accurate; the copy claim was not.
 **Verified:** headless. D-1004 offers exactly three buttons and two
 labelled non-buttons; tapping *"I have to skip a planned meal"* clears the
 CLARIFY, sets trigger `must_skip`, and computes consumed 450 / 35 g,
